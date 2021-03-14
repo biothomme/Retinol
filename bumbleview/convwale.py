@@ -227,16 +227,15 @@ class Floral_Spectra:
                 lambda x: np.divide(x, qc_spectrum_loci_triangle.sum(axis=1)),
                 axis=0)
             self.triangle_sl = qc_spectrum_loci_triangle_rel
-            
+
             # compute pairwise color distance between all samples
-            ps = Perceived_Signals(self.hexagon_df)
-            ps.get_x()
-            ps.get_y()
-            c = ps.data
-            color_distance = ps.data.apply(
+            excitation_signals = Perceived_Signals(self.hexagon_df)
+            excitation_signals.get_x()
+            excitation_signals.get_y()
+            color_distance = excitation_signals.data.apply(
                 lambda x: np.sqrt(np.subtract(
-                    ps.data["x"], x["x"])**2 + np.subtract(
-                        ps.data["y"],x["y"])**2), axis=1)
+                    excitation_signals.data["x"], x["x"])**2 + np.subtract(
+                        excitation_signals.data["y"], x["y"])**2), axis=1)
             self.pairwise_color_dist = color_distance
 
             self.converted_to_iv = True
@@ -247,7 +246,7 @@ class Floral_Spectra:
         from plotting import single_plot
         self.normalize()
         if (genus.lower() in [k.lower() for k in self.data.keys().levels[0]]):
-            if area == None:
+            if area is None:
                 fig = single_plot(
                     self.data[genus].swaplevel(0, 1, axis=1),
                     p_value_threshold)
@@ -301,20 +300,95 @@ class Floral_Spectra:
             return fig
         plt.close(fig)
         return
-    
-    def subset_plotting_frame(self, df, genus=None, area=None):
+
+    def plot_pca(self, genus=None, area=None, pc_a=1, pc_b=2,
+                 data_type="physical", show_fig=False):
+        from plotting import pca_snsplot
+        self.bombus_vision()
+        if data_type == "physical":
+            df = self.data
+            axis = 1
+        elif data_type == "insect_vision":
+            df = self.triangle_df.transpose().copy()
+            axis = 1
+        else:
+            print(f"""It is not possible to plot the data of type {data_type}.
+                  Try to set 'data_type' either to 'physical' or 'insect_vision'.""")
+            return
+        if (genus.lower() in [k.lower() for k in self.data.keys().levels[0]]):
+            if area is None:
+                fig = pca_snsplot(self.subset_plotting_frame(
+                    df, genus=genus, axis=axis), pcomp_a=pc_a, pcomp_b=pc_b)
+            else:
+                fig = pca_snsplot(self.subset_plotting_frame(
+                    df, genus=genus, area=area, axis=axis), pcomp_a=pc_a,
+                    pcomp_b=pc_b)
+            checkmake_dir_existence(f"{self.directory}/pca_{data_type}")
+            fig.savefig(f"{self.directory}/pca_{data_type}/pca_{data_type}_{genus}_{area if area != None else 'all'}.pdf")
+            if show_fig:
+                return fig
+            plt.close(fig)
+            return
+        print("Did not find given genus. Please check and try again.")
+        return
+
+    def plot_distances(self, genus=None, area=None, plot_type="heatmap",
+                       show_fig=False):
+        from plotting import distance_dendrogram
+        from plotting import distance_heatmap
+        PLOT_TYPE_DICT = {
+            "dendrogram": distance_dendrogram,
+            "heatmap": distance_heatmap
+            }
+        self.bombus_vision()
+        if plot_type in PLOT_TYPE_DICT.keys():
+            if (genus.lower() in [
+                    k.lower() for k in self.data.keys().levels[0]]):
+                if area is None:
+                    df = self.subset_plotting_frame(
+                        self.pairwise_color_dist, genus=genus)
+                    df = self.subset_plotting_frame(df.transpose(), genus=genus)
+                else:
+                    df = self.subset_plotting_frame(
+                        self.pairwise_color_dist, genus=genus, area=area)
+                    df = self.subset_plotting_frame(
+                        df.transpose(), genus=genus, area=area)
+                fig = PLOT_TYPE_DICT[plot_type](df)
+                checkmake_dir_existence(
+                    f"{self.directory}/color_dist_{plot_type}")
+                fig.savefig(f"{self.directory}/color_dist_{plot_type}/cd_{plot_type}_{genus}_{area if area != None else 'all'}.pdf")
+                if show_fig:
+                    return fig
+                plt.close(fig)
+                return
+            print("Did not find given genus. Please check and try again.")
+        print(f"""There is no such plot type as {plot_type} available. Try to
+               set 'data_type' either to 'heatmap' or 'dendrogram'.""")
+        return
+
+    def subset_plotting_frame(self, df, genus=None, area=None, axis=0):
         plotting_frame = df
-        if str(genus) in df.index.get_level_values(0):
+        if axis == 0:
+            genus_present = str(genus) in df.index.get_level_values(0)
+        else:
+            genus_present = str(genus) in df.columns.get_level_values(0)
+        if genus_present:
             plotting_frame = df.xs(
-                    genus, level="genus", axis=0, drop_level=False)
-            if str(area) in plotting_frame.index.get_level_values(1):
+                    genus, level="genus", axis=axis, drop_level=False)
+            if axis == 0:
+                area_present = str(
+                    area) in plotting_frame.index.get_level_values(1)
+            else:
+                area_present = str(
+                    area) in plotting_frame.columns.get_level_values(1)
+            if area_present:
                 plotting_frame = plotting_frame.xs(
-                        area, level="area", axis=0, drop_level=False)
+                        area, level="area", axis=axis, drop_level=False)
         return plotting_frame
 
     def get_wavelength_index(self):
         wavelength_index = []
-        for wavelength in range(300,round(max(self.data.index)),5):
+        for wavelength in range(300, round(max(self.data.index)),5):
             min_wavelength = min(abs(self.data.index-wavelength))
             if wavelength+min_wavelength in self.data.index:
                 wavelength_index.append(wavelength+min_wavelength)
@@ -342,7 +416,7 @@ class Floral_Spectra:
         else:
             print("There is no such data to save: {data_file}")
         return
-    
+
     def plot_all_inclusive(self, plot_type="wl_spectra"):
         for genus in set(self.data.columns.get_level_values(0)):
             areas = list(
@@ -364,8 +438,6 @@ class Floral_Spectra:
         import shutil
         from IPython.display import FileLink
         from IPython.display import display
-        import tempfile
-        import os
         output_zip = self.directory.split("/")[-1]
         shutil.make_archive(output_zip, "zip", self.temp.name)
         display(FileLink(f"{output_zip}.zip"))
@@ -373,11 +445,13 @@ class Floral_Spectra:
     def close_temporary_dir(self):
         self.temp.cleanup()
 
+
 def checkmake_dir_existence(directory):
     import os
     if not os.path.exists(directory):
         os.makedirs(directory)
     return
+
 
 class Perceived_Signals:
     '''Visual signals, which are present in a receptor specific dataframe
@@ -385,15 +459,15 @@ class Perceived_Signals:
     In addition this class contains the shapes of hexagon and triangle.'''
     TRIANGLE_HEIGHT = np.sqrt(3/4)
     TRIANGLE_COORDINATES = [[-TRIANGLE_HEIGHT, 0, TRIANGLE_HEIGHT, -TRIANGLE_HEIGHT],
-                        [-.5, 1, -.5, -.5]]
+                            [-.5, 1, -.5, -.5]]
     HEXAGON_COORDINATES = [[-TRIANGLE_HEIGHT,
-                        -TRIANGLE_HEIGHT,
-                        0,
-                        TRIANGLE_HEIGHT,
-                        TRIANGLE_HEIGHT,
-                        0,
-                        -TRIANGLE_HEIGHT],
-                        [-.5, .5, 1, .5, -.5, -1, -.5]]
+                            -TRIANGLE_HEIGHT,
+                            0,
+                            TRIANGLE_HEIGHT,
+                            TRIANGLE_HEIGHT,
+                            0,
+                            -TRIANGLE_HEIGHT],
+                           [-.5, .5, 1, .5, -.5, -1, -.5]]
 
     def __init__(self, signals_df):
         self.data = signals_df.copy()
@@ -404,7 +478,7 @@ class Perceived_Signals:
 
     def get_x(self):
         if not self.x:
-            self.data.loc[:,"x"] = (
+            self.data.loc[:, "x"] = (
                 self.data.iloc[:, 2]-self.data.iloc[:, 0]) * self.TRIANGLE_HEIGHT
             self.x = True
         return self.data["x"]
@@ -412,7 +486,7 @@ class Perceived_Signals:
     def get_y(self):
         if not self.y:
             self.data.loc[:, "y"] = (
-                self.data.iloc[:,1]) - (
+                self.data.iloc[:, 1]) - (
                     self.data.iloc[:, 2]+self.data.iloc[:, 0])/2
             self.y = True
         return self.data["y"]
