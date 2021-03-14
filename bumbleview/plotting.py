@@ -198,4 +198,101 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
         return
     return fig
 
+def distance_heatmap(pairwise_color_dist):
+    pairwise_color_dist.sort_index()
+    fig = plt.figure(figsize=(8, 6))
+    ax = plt.subplot(111)
+
+    im = fig.imshow(color_distance)
+    cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+    cbar.ax.set_ylabel("color distance", rotation=-90, va="bottom")
+    ax.set_xticks(np.arange(color_distance.shape[0]))
+    ax.set_yticks(np.arange(color_distance.shape[1]))
+    short_names = [
+        f"{x[0][:2]}_{x[2][:2]}_{x[1]}_{x[3]}" for x in color_distance.index]
+    ax.set_xticklabels(
+        short_names, rotation=45, ha="right", rotation_mode="anchor")
+    ax.set_yticklabels(short_names)
+    return fig
+
+def distance_dendrogram(pairwise_color_dist):
+    from scipy.cluster import hierarchy
+
+    pairwise_color_dist.sort_index()
+    fig = plt.figure(figsize=(8, 6))
+    ax = plt.subplot(111)
+    dendrogram_df = hierarchy.linkage(color_distance, 'ward')
+    short_names = [
+        f"{x[0][:2]}_{x[2][:2]}_{x[1]}_{x[3]}" for x in color_distance.index]
+    hierarchy.dendrogram(
+        dendrogram_df, labels=short_names, ax=ax, orientation='bottom',
+        leaf_rotation=90)
+    ax.spines['left'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+
+
+def pca_snsplot(color_data, pcomp_a=1, pcomp_b=2):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    import seaborn as sns
+    import pandas as pd
+    from sklearn.decomposition import PCA
+    from sklearn.impute import SimpleImputer
+
+
+    imp = SimpleImputer(missing_values=np.nan, strategy='mean')
+    imp = imp.fit(color_data)
+    imp_color_data = imp.transform(color_data)
+    taxon_assignments = [f"{x[0]}_{x[2]}" for x in color_data.columns]
+
+    pca = PCA(svd_solver='full').fit(imp_color_data)
+
+    COLOR_MAP = 'spring' #'tab20'
+
+    pc_a = f'PC{pcomp_a}'
+    pc_b = f'PC{pcomp_b}'
+    
+    all_markers = np.array(
+        range(len(taxon_assignments))) / len(list(set(taxon_assignments)))
+    given_markers = {group: all_markers[i] for i, group in enumerate(
+        list(set(taxon_assignments)))}
+    colors = [given_markers[el] for el in taxon_assignments]
+
+    col_dic = {asg: co for asg, co in zip(taxon_assignments, colors)}
+    cmap = cm.get_cmap(COLOR_MAP, 256)
+
+    cmap_dic = {asg: cmap(co) for asg, co in zip(taxon_assignments, colors)}
+    color_order = [cl for i, cl in enumerate(colors) if cl not in colors[:i]]
+
+    pca_color_data = pca.transform(color_data)
+    pca_plotting_data = pd.DataFrame(
+        zip(pca_color_data[:, pcomp_a-1], pca_color_data[:, pcomp_b-1],
+            taxon_assignments, color_data.colums.get_level_values(1)),
+        columns=[pc_a, pc_b, 'taxon', 'areas'],
+        index=color_data.columns)
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = plt.subplot(1, 1, 1)
+
+    ax = sns.kdeplot(
+        data=pca_plotting_data, x=pc_a, y=pc_b, hue='taxon', palette=cmap_dic,
+        ax=ax, fill=True, levels=2, thresh=.1, alpha=.2)
+
+    # plot the points
+    S = 40
+    ax.scatter(data=pca_plotting_data, x=pc_a, y=pc_b, c=colors[i],
+               hue="taxon", alpha=.9, s=S, marker="area",
+               edgecolor='#333333', lw=.3)
+
+    ax.legend(handles=handles,
+              bbox_to_anchor=(1.02, .01),
+              loc='lower left',
+              borderaxespad=0.)
+
+    return fig
+
+
+# main
+
 default()
