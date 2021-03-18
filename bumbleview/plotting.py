@@ -238,7 +238,7 @@ def distance_dendrogram(pairwise_color_df):
     taxon_short_names = set([y[:5] for y in short_names])
     cmap = cm.get_cmap("Dark2", 256)
     color_dict = {
-        x: cmap(i/(len(taxon_short_names)-1))
+        x: cmap(i+1/(len(taxon_short_names)))
         for i, x in enumerate(taxon_short_names)}
     labels = ax.get_xmajorticklabels()
     for label in labels:
@@ -268,9 +268,11 @@ def pca_snsplot(color_data, pcomp_a=1, pcomp_b=2):
 
     pc_a = f'PC{pcomp_a}'
     pc_b = f'PC{pcomp_b}'
-
-    all_markers = np.array(
-        range(len(taxon_assignments))) / len(list(set(taxon_assignments)))
+    try:
+        all_markers = np.array(
+            range(len(taxon_assignments))) / len(list(set(taxon_assignments)))
+    except ZeroDivisionError:
+        all_markers = np.array([0])
     given_markers = {group: all_markers[i] for i, group in enumerate(
         list(set(taxon_assignments)))}
     colors = [given_markers[el] for el in taxon_assignments]

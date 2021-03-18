@@ -85,7 +85,7 @@ class Floral_Spectra:
                   species_names=None, area_names=None, additional=None):
         self.data = floral_spectra_data.iloc[:, 1:]
         self.data.index = floral_spectra_data.iloc[:, 0]
-        
+
         df_mid =  pd.MultiIndex.from_arrays(
             [genus_names, area_names, species_names, additional],
             names=("genus", "area", "species", "specimen"))
@@ -93,7 +93,8 @@ class Floral_Spectra:
         self.normalized = False
         self.converted_to_iv = False
         self.hexagon_df = None
-        self.triangle_df= None
+        self.triangle_df = None
+        self.pairwise_color_dist = None
         self.make_directory()
         return
 
@@ -403,10 +404,20 @@ class Floral_Spectra:
                      "hexagon": (
                          self.hexagon_df, "ins_vis_hex_excitations.csv"),
                      "triangle": (
-                         self.triangle_df, "ins_vis_tri_rel_absorptions.csv")}
-        if data_file == "wl_spectra":
+                         self.triangle_df, "ins_vis_tri_rel_absorptions.csv"),
+                     "pca_physical": (self.data, "wl_spectra_normalized.csv"),
+                     "pca_insect_vision": (
+                         self.hexagon_df, "ins_vis_hex_excitations.csv"),
+                     "heatmap": (self.pairwise_color_dist,
+                         "ins_vis_pairwise_color_dist.csv"),
+                     "dendrogram": (self.pairwise_color_dist,
+                         "ins_vis_pairwise_color_dist.csv")}
+        if data_file in ["wl_spectra", "pca_physical", "pca_insect_vision"]:
             FILE_DICT[data_file][0].to_csv(
                 f"{self.directory}/{data_file}/{FILE_DICT[data_file][1]}")
+        elif data_file in ["heatmap", "dendrogram"]:
+            FILE_DICT[data_file][0].to_csv(
+                f"{self.directory}/color_dist_{data_file}/{FILE_DICT[data_file][1]}")
         elif data_file in FILE_DICT.keys():
             df_signal = Perceived_Signals(FILE_DICT[data_file][0])
             df_signal.get_x()
@@ -428,6 +439,16 @@ class Floral_Spectra:
                     self.plot_hexagon(genus=genus, area=area)
                 elif plot_type == "triangle":
                     self.plot_triangle(genus=genus, area=area)
+                elif plot_type == "pca_physical":
+                    self.plot_pca(genus=genus, area=area)
+                elif plot_type == "pca_insect_vision":
+                    self.plot_pca(
+                        genus=genus, area=area, data_type="insect_vision")
+                elif plot_type == "heatmap":
+                    self.plot_distances(genus=genus, area=area)
+                elif plot_type == "dendrogram":
+                    self.plot_distances(
+                        genus=genus, area=area, plot_type="dendrogram")
                 else:
                     print(f"Plotting type {plot_type} was not recognized.")
                     return
