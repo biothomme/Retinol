@@ -517,3 +517,14 @@ class Perceived_Signals:
             self.taxa = np.asarray([f"{x[0]}_{x[2]}".replace("_", " ")
                                     for x in self.data.index])
         return self.taxa
+
+def reset_directory():
+    import os
+    import shutil
+    temporaries = [x for x in os.listdir() if (".zip" in x) | ("tmp" in x)]
+    print(temporaries)
+    [shutil.rmtree(tmp)  if os.path.isdir(tmp) else os.remove(tmp)
+        for tmp in temporaries]
+    return
+
+reset_directory()
