@@ -48,13 +48,17 @@ def input_flowers():
     display(uploader)
     return uploader
 
-def parse_flowers(uploader):
+
+def parse_flowers(uploader, example=False, data=True):
     import codecs
     from io import StringIO
+    if example:
+        return load_example(data=data)
     try:
         data = list(uploader.value.values())[0]
     except IndexError:
-        print("Please upload a csv file first.")
+        print("You did not successfully select a file. The example file will be used.")
+        return load_example(data=data)
     csv_data = codecs.decode(data["content"], encoding="utf-8")
     # check if comma or semicolon separated
     newline_count = csv_data.count('\n')
@@ -67,12 +71,24 @@ def parse_flowers(uploader):
     print("csv file was neither seperated by comma, semicolon nor tabs. Please check and try again.")
     return
 
+
+def load_example(data=True):
+    if data:
+        df = pd.read_csv("data/xmpl_data.csv", header=None, sep=",")
+    else:
+        df = pd.read_csv("data/xmpl_meta.csv", header=None, sep=",")
+    return df
+
+
 def new_floral_spectra(wl_df:pd.DataFrame, meta_df:pd.DataFrame):
-    floral_spectra = Floral_Spectra(wl_df,
-                                    genus_names=meta_df.iloc[:,0],
-                                    species_names=meta_df.iloc[:,1],
-                                    area_names=meta_df.iloc[:,2],
-                                    additional=meta_df.iloc[:,3])
+    try:
+        floral_spectra = Floral_Spectra(wl_df,
+                                        genus_names=meta_df.iloc[:,0],
+                                        species_names=meta_df.iloc[:,1],
+                                        area_names=meta_df.iloc[:,2],
+                                        additional=meta_df.iloc[:,3])
+    except ValueError:
+        print("Your input files did not match. Please try again. Otherwise, the example data was loaded. You can use it instead.")
     return floral_spectra
 
 def get_dropdown_value(key_choice):
@@ -121,12 +137,12 @@ class Floral_Spectra:
         from IPython.display import display
         import ipywidgets as widgets
         KEY_DICT = {"genus": False, "area": True}
-        level_index = 0
-        if (KEY_DICT[key] and genus_choice):
-            df = self.data[get_dropdown_value(genus_choice)]
-        else:
-            df = self.data
-            level_index += 1 if KEY_DICT[key] else 0
+        level_index = 1 if KEY_DICT[key] else 0
+        df = self.data
+        if (KEY_DICT[key] and genus_choice is not None):
+            if genus_choice.value != len(genus_choice.options)-1:
+                df = self.data[get_dropdown_value(genus_choice)]
+                level_index = 0
         options = [(k, i) for i, k in enumerate(set(
             df.keys().get_level_values(level_index)))]
         options += [(None, len(options))]
@@ -246,13 +262,21 @@ class Floral_Spectra:
                         show_fig=False):
         from plotting import single_plot
         self.normalize()
-        if (genus.lower() in [k.lower() for k in self.data.keys().levels[0]]):
+        valid_genus = genus is None
+        if not valid_genus:
+            valid_genus = genus.lower() in [
+                k.lower() for k in self.data.keys().levels[0]]
+        if valid_genus:
+            if genus is None:
+                df = self.data.copy().swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
+            else:
+                df = self.data[genus]
             if area is None:
                 fig = single_plot(
-                    self.data[genus].swaplevel(0, 1, axis=1),
+                    df.copy().swaplevel(0, 1, axis=1),
                     p_value_threshold)
             else:
-                fig = single_plot(self.data[genus][area], p_value_threshold)
+                fig = single_plot(df[area], p_value_threshold)
             checkmake_dir_existence(f"{self.directory}/wl_spectra")
             fig.savefig(f"{self.directory}/wl_spectra/wl_spectra_{genus}_{area if area != None else 'all'}.pdf")
             if show_fig:
@@ -316,7 +340,7 @@ class Floral_Spectra:
             print(f"""It is not possible to plot the data of type {data_type}.
                   Try to set 'data_type' either to 'physical' or 'insect_vision'.""")
             return
-        if (genus.lower() in [k.lower() for k in self.data.keys().levels[0]]):
+        if (genus in self.data.keys().levels[0]) or (genus is None):
             if area is None:
                 fig = pca_snsplot(self.subset_plotting_frame(
                     df, genus=genus, axis=axis), pcomp_a=pc_a, pcomp_b=pc_b)
@@ -343,8 +367,7 @@ class Floral_Spectra:
             }
         self.bombus_vision()
         if plot_type in PLOT_TYPE_DICT.keys():
-            if (genus.lower() in [
-                    k.lower() for k in self.data.keys().levels[0]]):
+            if (genus in self.data.keys().levels[0]) or (genus is None):
                 if area is None:
                     df = self.subset_plotting_frame(
                         self.pairwise_color_dist, genus=genus)
@@ -522,7 +545,6 @@ def reset_directory():
     import os
     import shutil
     temporaries = [x for x in os.listdir() if (".zip" in x) | ("tmp" in x)]
-    print(temporaries)
     [shutil.rmtree(tmp)  if os.path.isdir(tmp) else os.remove(tmp)
         for tmp in temporaries]
     return
