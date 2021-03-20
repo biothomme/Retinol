@@ -18,7 +18,16 @@ def single_plot(color_df, p_threshold):
               '#FCC200',
               'mediumblue',
               'darkgreen',
-              'coral']
+              'coral',
+              'fuchsia',
+              'y',
+              'tomato',
+              'teal',
+              'papayawhip',
+              'darkslategrey',
+              'black',
+              'dodgerblue',
+              'cyan']
     
     species_list = set(color_df.keys().get_level_values(0))
 
@@ -154,7 +163,7 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
     ax.spines['top'].set_color('none')
     ax.set_xlabel("")
     ax.set_ylabel("")
-    ax.legend(loc="upper left", bbox_to_anchor=(.9, 1))
+    ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
     if axis_label:
         ax.tick_params(color="gray", labelcolor="gray")
     else:
@@ -309,6 +318,7 @@ def pca_snsplot(color_data, pcomp_a=1, pcomp_b=2):
     ax.spines['bottom'].set_color('gray')
     ax.spines['right'].set_color('none')
     ax.spines['top'].set_color('none')
+    ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
     return fig
 
 
