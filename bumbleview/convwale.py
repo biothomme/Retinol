@@ -1,15 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar 10 08:28:10 2021
+           ())
+         -(||)"                       bumbleview...
+          '''                         Created on Wed Mar 10 08:28:10 2021
+This script contains the main functions for the jupy nb 'bumbleview'.
+It enables to convert physical wavelength spectra of e.g. petals of flowers to
+excitation values on a trichromatic insect's eye.
 
-@author: Thomsn
+If you have questions regarding computation of the different values or specialities of the plots, please refer to the jupy nb or Chittka & Kevan 2005.
+
+@author: biothomml
 """
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 def load_data(file_name:str, header=None):
+    '''
+    Loading (example) files from the data directory
+
+    Parameters
+    ----------
+    file_name : str
+        should be a csv file
+    header : TYPE, optional
+
+    Returns
+    -------
+    df : a pd dataframe of the file
+    '''
     from importlib import resources
     try:
         with resources.open_text("data", file_name) as fid:
@@ -21,7 +42,20 @@ def load_data(file_name:str, header=None):
         return None
     return df
 
+
 def get_header(name:str):
+    """
+    Return header for specific files of the data direcory
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    Header as list
+
+    """
     FILES_DICT = {
         "bombus": ["uv", "blue", "green"],
         "apis": ["uv", "blue", "green"],
@@ -31,7 +65,9 @@ def get_header(name:str):
     name = name.lower()
     return FILES_DICT[name] if name in FILES_DICT.keys() else None
 
+
 def get_file_name(name:str):
+    # help function to retrieve filenames
     FILES_DICT = {
         "bombus": "bombus_sensoring.csv",
         "apis": "apis_sensoring.csv",
@@ -41,25 +77,65 @@ def get_file_name(name:str):
     name = name.lower()
     return FILES_DICT[name] if name in FILES_DICT.keys() else None
 
+
 def input_flowers():
+    """
+    Build an input field for uploading csv files from the notebook
+
+    Returns
+    -------
+    uploader : an upload wrapper from the widget
+
+    """
     from IPython.display import display
     import ipywidgets as widgets
     uploader = widgets.FileUpload(accept='.csv', multiple=False)
     display(uploader)
     return uploader
 
+def apis_checkbox():
+    """
+    Simple checkbox to choose use of bee recepetor sensitivity data
+
+    Returns
+    -------
+    cb : checkbox wrapper containing the value if checked or not.
+
+    """
+    from IPython.display import display
+    import ipywidgets as widgets
+    cb = widgets.Checkbox(
+        value=False,
+        description='Load Apis mellifera data',
+        disabled=False
+    )
+    display(cb)
+    return cb
 
 def parse_flowers(uploader, example=False, data=True):
+    """
+    Function to import the given data and store as a pandas df
+    Parameters
+    ----------
+    uploader : wrapper of file upload
+    example : Bool, if example data should be used
+    data : Bool, if the corresponding file contains spectrum data
+
+    Returns
+    -------
+    a pandas dataframe with the requested/imported data (can be meta 
+    information or spectrum data)
+    """
     import codecs
     from io import StringIO
     if example:
         return load_example(data=data)
     try:
-        data = list(uploader.value.values())[0]
+        data_input = list(uploader.value.values())[0]
     except IndexError:
         print("You did not successfully select a file. The example file will be used.")
         return load_example(data=data)
-    csv_data = codecs.decode(data["content"], encoding="utf-8")
+    csv_data = codecs.decode(data_input["content"], encoding="utf-8")
     # check if comma or semicolon separated
     newline_count = csv_data.count('\n')
     for seperator in [",", ";", "\t"]:
@@ -73,6 +149,20 @@ def parse_flowers(uploader, example=False, data=True):
 
 
 def load_example(data=True):
+    """
+    Loads the example data of alpine flowers (Primula, Gentiana, Rhododendron
+    and Silene).
+
+    Parameters
+    ----------
+    data : Bool, if it should be the spectrum data file that will be returned.
+        Otherwise, meta information data is returned.
+
+    Returns
+    -------
+    df : dataframe with example data.
+
+    """
     if data:
         df = pd.read_csv("data/xmpl_data.csv", header=None, sep=",")
     else:
@@ -81,6 +171,24 @@ def load_example(data=True):
 
 
 def new_floral_spectra(wl_df:pd.DataFrame, meta_df:pd.DataFrame):
+    """
+    Constructs a new object of the Floral_Spectra class with the given data
+
+    Parameters
+    ----------
+    wl_df : pd.DataFrame
+        Dataframe that contains spectral data.
+    meta_df : pd.DataFrame
+        Dataframe that maps metainformation (genus, species, leaf area and
+        additional information) to the corresponding columns of the
+        spectrum dataframe.
+
+    Returns
+    -------
+    floral_spectra : TYPE
+        new Floral_Spectra object for the input dataset
+
+    """
     try:
         floral_spectra = Floral_Spectra(wl_df,
                                         genus_names=meta_df.iloc[:,0],
@@ -92,13 +200,47 @@ def new_floral_spectra(wl_df:pd.DataFrame, meta_df:pd.DataFrame):
     return floral_spectra
 
 def get_dropdown_value(key_choice):
+    # help function to read dropdown value
     return key_choice.options[key_choice.value][0]
 
 class Floral_Spectra:
-    '''This implements floral spectra to convert those to insect vision.
-    '''
+    """
+    Class Floral_Spectra
+    This implements floral spectra to convert those to excitation signals of
+    insect vision cascades.
+    It also allows different plots on the data and therefore needs the script
+    'plotting.py'.
+    """
+    
     def __init__(self, floral_spectra_data, genus_names=None,
                   species_names=None, area_names=None, additional=None):
+        """
+        Constructor of Floral_Spectra object.
+
+        Parameters
+        ----------
+        floral_spectra_data : pd.DataFrame
+            Needs to be a dataframe containing the spectral data for different
+            samples.
+        genus_names : optional
+            List of genus names corresponding to columns of 
+            floral_spectra_data. The default is None.
+        species_names : optional
+            List of species epithets corresponding to columns of 
+            floral_spectra_data. The default is None.
+        area_names : optional
+            List of leaf areas corresponding to columns of 
+            floral_spectra_data. The default is None.
+        additional : optional
+            List of additional information (e.g. specimen number)
+            corresponding to columns of floral_spectra_data. The default is
+            None.
+
+        Returns
+        -------
+        new Floral_Spectra object.
+
+        """
         self.data = floral_spectra_data.iloc[:, 1:]
         self.data.index = floral_spectra_data.iloc[:, 0]
 
@@ -111,10 +253,19 @@ class Floral_Spectra:
         self.hexagon_df = None
         self.triangle_df = None
         self.pairwise_color_dist = None
+        self.erg = load_data(get_file_name("bombus"), get_header("bombus"))
         self.make_directory()
         return
 
     def make_directory(self):
+        """
+        Builds a temporary directory in the background. Used to save plots
+        and data.
+        
+        Returns
+        -------
+        None.
+        """
         import tempfile
         import os
         import datetime
@@ -127,6 +278,15 @@ class Floral_Spectra:
         return
 
     def normalize(self):
+        """
+        Performs min max normalization / rescaling to [0,1] on wavelength
+        reflexion spectra.
+
+        Returns
+        -------
+        None.
+
+        """
         if (not self.normalized):
             df = self.data - self.data.apply(min)
             self.data = df / df.apply(max)
@@ -134,6 +294,24 @@ class Floral_Spectra:
         return
 
     def select_key(self, key="genus", genus_choice=None):
+        """
+        Dropdownmenu for the jupy nb. Important to select genus or leaf area,
+        to focus analysis on.
+
+        Parameters
+        ----------
+        key : TYPE, optional
+            defines if selection should be performed on 'genus' or 'area'
+            column. The default is "genus".
+        genus_choice : TYPE, optional
+            Is necessary if an area choice should be done, because a first
+            subselection on genus_choice can be done. The default is None.
+
+        Returns
+        -------
+        key_choice : returns a wrapper containing the choice of the key.
+
+        """
         from IPython.display import display
         import ipywidgets as widgets
         KEY_DICT = {"genus": False, "area": True}
@@ -154,9 +332,18 @@ class Floral_Spectra:
         return key_choice
 
     def bombus_vision(self):
+        """
+        This is the core function to compute all modelled values for the
+        insect vision simulation.
+
+        Returns
+        -------
+        None.
+
+        """
         if not self.converted_to_iv:
             self.normalize()
-            bombus_df = load_data(get_file_name("bombus"), get_header("bombus"))
+            bombus_df = self.erg
             d65_df = load_data(get_file_name("d65"), get_header("d65"))
             green_leaf_std_df = load_data(get_file_name("green_leaf_std"),
                                           get_header("green_leaf_std"))
@@ -258,8 +445,72 @@ class Floral_Spectra:
             self.converted_to_iv = True
         return
 
+    def set_different_erg(self, erg_uploader, apis=False):
+        """
+        This function allows to use different insect ERG datasets, but not
+        only the standard Bombus one. 
+
+        Parameters
+        ----------
+        erg_uploader : wrapper of the upload widget. Could contain a personal
+            ERG data file.
+        apis : Bool, optional
+            Defines, if the Apis mellifera set should be used. The default
+            is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        if apis:
+            self.erg = load_data(get_file_name("apis"), get_header("apis"))
+            return
+        try:
+            data = list(erg_uploader.value.values())[0]
+        except IndexError:
+            print(
+                "You did not successfully select a file. Bombus data will be used.")
+            return
+        csv_data = codecs.decode(data["content"], encoding="utf-8")
+        # check if comma or semicolon separated
+        newline_count = csv_data.count('\n')
+        for seperator in [",", ";", "\t"]:
+            seperator_counts = [
+                line.count(seperator) for line in csv_data.split("\n")]
+            if (seperator_counts[0] != 0 and len(
+                    set(seperator_counts[:-1])) == 1):
+                input_frame = pd.read_csv(
+                    StringIO(csv_data), sep=seperator,
+                    header=infer, index_col=0)
+                if input_frame.shape[1] == 3:
+                    self.erg = input_frame
+                else:
+                    print("Input did not fit. Bombus data will be used instead.")
+                return
+                
+
     def plot_wl_spectra(self, genus, area, p_value_threshold=.05,
-                        show_fig=False):
+                        show_fig:bool=False):
+        """
+        Plot physical wavelength spectra
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for
+        area : Name of leaf area to select dataset for
+        p_value_threshold : optional
+            Bonferroni corrected p-Value that sets the threshold of
+            significance for the ANOVA runs. That is the base for plotting the
+            colored background lines. The default is .05.
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
         from plotting import single_plot
         self.normalize()
         valid_genus = genus is None
@@ -289,6 +540,26 @@ class Floral_Spectra:
     def plot_hexagon(self, genus=None, area=None,
                      axis_label=True, spectrum_loci_annotations=True,
                      show_fig=False):
+        """
+        Plots the color hexagon for a given dataset.
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for.
+        area : Name of leaf area to select dataset for.
+        axis_label : TYPE, optional
+            Defines, if the axislabel should be visible. The default is True.
+        spectrum_loci_annotations : TYPE, optional
+            Defines, if the text annotations of wavelength in nm should be set
+            for the spectrum locus. The default is True.
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
         from plotting import polygon_plot
         self.bombus_vision()
         plotting_hex_df = self.subset_plotting_frame(
@@ -305,9 +576,30 @@ class Floral_Spectra:
         plt.close(fig)
         return
 
+
     def plot_triangle(self, genus=None, area=None,
                       axis_label=True, spectrum_loci_annotations=True,
                       show_fig=False):
+        """
+        Plots the color triangle for a given dataset.
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for.
+        area : Name of leaf area to select dataset for.
+        axis_label : TYPE, optional
+            Defines, if the axislabel should be visible. The default is True.
+        spectrum_loci_annotations : TYPE, optional
+            Defines, if the text annotations of wavelength in nm should be set
+            for the spectrum locus. The default is True.
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
         from plotting import polygon_plot
         self.bombus_vision()
         plotting_tri_df = self.subset_plotting_frame(
@@ -326,8 +618,29 @@ class Floral_Spectra:
         plt.close(fig)
         return
 
+
     def plot_pca(self, genus=None, area=None, pc_a=1, pc_b=2,
                  data_type="physical", show_fig=False):
+        """
+        Plt PCA for physical or insect vision data
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for.
+        area : Name of leaf area to select dataset for.
+        pc_a : Count of the principal component to plot on. The default is 1.
+        pc_b : Count of the principal component to plot on. The default is 2.
+        data_type : Type of data, can be either 'physical' for the wavelength
+            reflexion values or 'ìnsect_vision' for the transformed data. The
+            default is "physical".
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
         from plotting import pca_snsplot
         self.bombus_vision()
         if data_type == "physical":
@@ -359,6 +672,23 @@ class Floral_Spectra:
 
     def plot_distances(self, genus=None, area=None, plot_type="heatmap",
                        show_fig=False):
+        """
+        Plotting pairwise color distances as dendrogram or heatmap
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for.
+        area : Name of leaf area to select dataset for.
+        plot_type : Defines the type of the plot. Can be 'heatmap. or
+            'dendrogram'. The default is "heatmap".
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
         from plotting import distance_dendrogram
         from plotting import distance_heatmap
         PLOT_TYPE_DICT = {
@@ -391,6 +721,22 @@ class Floral_Spectra:
         return
 
     def subset_plotting_frame(self, df, genus=None, area=None, axis=0):
+        """
+        Make a subset of genus and leaf area for the dataset to be used in plotting
+
+        Parameters
+        ----------
+        df : Dataframe to be subset on
+        genus : Genus to select for. The default is None.
+        area : Leaf area to select for. The default is None.
+        axis : Axis on the multiindex to select for genus/area. 
+            The default is 0.
+
+        Returns
+        -------
+        plotting_frame : subset of the data
+
+        """
         plotting_frame = df
         if axis == 0:
             genus_present = str(genus) in df.index.get_level_values(0)
@@ -410,7 +756,16 @@ class Floral_Spectra:
                         area, level="area", axis=axis, drop_level=False)
         return plotting_frame
 
+
     def get_wavelength_index(self):
+        """
+        Makes a subset of the wavelength index of the dataset to steps of 5 nm.
+
+        Returns
+        -------
+        wavelength_index: subsetted index
+
+        """
         wavelength_index = []
         for wavelength in range(300, round(max(self.data.index)),5):
             min_wavelength = min(abs(self.data.index-wavelength))
@@ -422,7 +777,28 @@ class Floral_Spectra:
                 print("There was a missing wavelength. Please check.")
         return wavelength_index
 
+
     def save_data(self, data_file):
+        """
+        Saves the data corresponding to the plot type:
+            "wl_spectra", "pca_physical": min max normalized wavelength 
+                spectra
+            "hexagon", "pca_insect_vision": excitataion values (E) for all  
+                receptor types and samples
+            "triangle": relative quantum catch absorpion values (P_rel) for
+                all recepters and samples
+             "heatmap", "dendrogram": Pairwise distance matrix of euclidean
+                 metric color distances
+
+        Parameters
+        ----------
+        data_file : type of plot, defines file to be stored (see above)
+
+        Returns
+        -------
+        None.
+
+        """
         FILE_DICT = {"wl_spectra": (self.data, "wl_spectra_normalized.csv"),
                      "hexagon": (
                          self.hexagon_df, "ins_vis_hex_excitations.csv"),
@@ -451,7 +827,24 @@ class Floral_Spectra:
             print("There is no such data to save: {data_file}")
         return
 
+
     def plot_all_inclusive(self, plot_type="wl_spectra"):
+        """
+        Function to make all different combinations and subsets of genera and
+        leaf areas for a specific type of plot and save them with the
+        corresponding dataset in the temporary directory.
+
+        Parameters
+        ----------
+        plot_type : Can be 'wl_spectra', 'hexagon', 'triangle', 'pca_physical',
+        'pca_insect_vision', 'heatmap' or 'dendrogram'. The default is
+        "wl_spectra".
+
+        Returns
+        -------
+        None.
+
+        """
         for genus in set(self.data.columns.get_level_values(0)):
             areas = list(
                 set(self.data[genus].columns.get_level_values(0))) + [None]
@@ -479,6 +872,14 @@ class Floral_Spectra:
         return
 
     def download_data(self):
+        """
+        Download the temporary directory with all data stored as zip-file
+
+        Returns
+        -------
+        None.
+
+        """
         import shutil
         from IPython.display import FileLink
         from IPython.display import display
@@ -487,10 +888,26 @@ class Floral_Spectra:
         display(FileLink(f"{output_zip}.zip"))
 
     def close_temporary_dir(self):
+        # help function to close temporary dir
         self.temp.cleanup()
+
+# end class Floral_Spectra
 
 
 def checkmake_dir_existence(directory):
+    """
+    Checks if a directory exists. If not, it will be made. Used for
+    subdirectories while making plots.
+
+    Parameters
+    ----------
+    directory : name or path of directory
+
+    Returns
+    -------
+    None.
+
+    """
     import os
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -498,9 +915,12 @@ def checkmake_dir_existence(directory):
 
 
 class Perceived_Signals:
-    '''Visual signals, which are present in a receptor specific dataframe
+    '''
+    Class Perceived_Signals
+    Visual signals, which are present in a receptor specific dataframe
     can be stored in this class, to simplify its transformation to x, y values.
-    In addition this class contains the shapes of hexagon and triangle.'''
+    In addition, this class contains the shapes of hexagon and triangle.
+    '''
     TRIANGLE_HEIGHT = np.sqrt(3/4)
     TRIANGLE_COORDINATES = [[-TRIANGLE_HEIGHT, 0, TRIANGLE_HEIGHT, -TRIANGLE_HEIGHT],
                             [-.5, 1, -.5, -.5]]
@@ -513,21 +933,54 @@ class Perceived_Signals:
                             -TRIANGLE_HEIGHT],
                            [-.5, .5, 1, .5, -.5, -1, -.5]]
 
+
     def __init__(self, signals_df):
+        """
+        Constructs new object of Perceived_Signals class. It only needs a
+        dataframe of quantum catch values or excitation values for 
+
+        Parameters
+        ----------
+        signals_df : pd.DataFrame
+            Relative P or E values (using nomenclature from bumbleview nb)
+
+        Returns
+        -------
+        new Perceived_Signals object
+
+        """
         self.data = signals_df.copy()
         self.x = False
         self.y = False
         self.taxa = np.array([])
         return
 
+
     def get_x(self):
+        """
+        compute x values for given dataset and stores it for later usage.
+
+        Returns
+        -------
+        the column containing the x values
+
+        """
         if not self.x:
             self.data.loc[:, "x"] = (
                 self.data.iloc[:, 2]-self.data.iloc[:, 0]) * self.TRIANGLE_HEIGHT
             self.x = True
         return self.data["x"]
 
+
     def get_y(self):
+        """
+        compute y values for given dataset and stores it for later usage.
+
+        Returns
+        -------
+        the column containing the y values
+
+        """
         if not self.y:
             self.data.loc[:, "y"] = (
                 self.data.iloc[:, 1]) - (
@@ -535,13 +988,34 @@ class Perceived_Signals:
             self.y = True
         return self.data["y"]
 
+
     def get_taxa(self):
+        """
+        Obtain taxon references for given dataset and stores it for later
+        usage.
+
+        Returns
+        -------
+        the column containing the taxon assignments
+
+        """
         if self.taxa.size == 0:
             self.taxa = np.asarray([f"{x[0]}_{x[2]}".replace("_", " ")
                                     for x in self.data.index])
         return self.taxa
 
+# end class Perceived_Signals
+
+
 def reset_directory():
+    """
+    This function delete the temporary directory.
+
+    Returns
+    -------
+    None.
+
+    """
     import os
     import shutil
     temporaries = [x for x in os.listdir() if (".zip" in x) | ("tmp" in x)]
@@ -549,4 +1023,6 @@ def reset_directory():
         for tmp in temporaries]
     return
 
+
+# default run
 reset_directory()
