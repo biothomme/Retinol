@@ -967,7 +967,8 @@ class Perceived_Signals:
         """
         if not self.x:
             self.data.loc[:, "x"] = (
-                self.data.iloc[:, 2]-self.data.iloc[:, 0]) * self.TRIANGLE_HEIGHT
+                self.data.iloc[:, 2]-self.data.iloc[
+                    :, 0]) * self.TRIANGLE_HEIGHT
             self.x = True
         return self.data["x"]
 
@@ -1007,7 +1008,7 @@ class Perceived_Signals:
 # end class Perceived_Signals
 
 
-def reset_directory():
+def __reset_directory():
     """
     This function delete the temporary directory.
 
@@ -1025,4 +1026,4 @@ def reset_directory():
 
 
 # default run
-reset_directory()
+__reset_directory()
