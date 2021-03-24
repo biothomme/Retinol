@@ -34,9 +34,12 @@ def load_data(file_name:str, header=None):
     from importlib import resources
     try:
         with resources.open_text("data", file_name) as fid:
-            df = pd.read_csv(fid, header=None, index_col=0)
-            if header != None:
-                df.columns = header
+            if header == "infer":
+                df = pd.read_csv(fid, header=header, index_col=0)
+            else:
+                df = pd.read_csv(fid, header=None, index_col=0)
+                if header != None:
+                    df.columns = header
     except FileNotFoundError:
         print(f"There was no file {file_name}. Try again.")
         return None
@@ -57,8 +60,8 @@ def get_header(name:str):
 
     """
     FILES_DICT = {
-        "bombus": ["uv", "blue", "green"],
-        "apis": ["uv", "blue", "green"],
+        "bombus": "infer",
+        "apis": "infer",
         "d65": ["reflectance"],
         "green_leaf_std": ["reflectance"]
         }
@@ -254,6 +257,7 @@ class Floral_Spectra:
         self.triangle_df = None
         self.pairwise_color_dist = None
         self.erg = load_data(get_file_name("bombus"), get_header("bombus"))
+        self.changed_erg = False
         self.make_directory()
         return
 
@@ -331,6 +335,7 @@ class Floral_Spectra:
         display(key_choice)
         return key_choice
 
+
     def bombus_vision(self):
         """
         This is the core function to compute all modelled values for the
@@ -341,7 +346,7 @@ class Floral_Spectra:
         None.
 
         """
-        if not self.converted_to_iv:
+        if (not self.converted_to_iv) or (self.changed_erg):
             self.normalize()
             bombus_df = self.erg
             d65_df = load_data(get_file_name("d65"), get_header("d65"))
@@ -443,6 +448,7 @@ class Floral_Spectra:
             self.pairwise_color_dist = color_distance
 
             self.converted_to_iv = True
+            self.changed_erg = False
         return
 
     def set_different_erg(self, erg_uploader, apis=False):
@@ -463,8 +469,11 @@ class Floral_Spectra:
         None.
 
         """
+        import codecs
+        from io import StringIO
         if apis:
             self.erg = load_data(get_file_name("apis"), get_header("apis"))
+            self.changed_erg = True
             return
         try:
             data = list(erg_uploader.value.values())[0]
@@ -482,11 +491,12 @@ class Floral_Spectra:
                     set(seperator_counts[:-1])) == 1):
                 input_frame = pd.read_csv(
                     StringIO(csv_data), sep=seperator,
-                    header=infer, index_col=0)
+                    header="infer", index_col=0)
                 if input_frame.shape[1] == 3:
                     self.erg = input_frame
                 else:
                     print("Input did not fit. Bombus data will be used instead.")
+                self.changed_erg = True
                 return
                 
 
