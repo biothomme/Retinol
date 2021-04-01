@@ -19,11 +19,11 @@ setup(name="bumbleview",
       author_email="thomas.huber@evobio.eu",
       license="MIT",
       keywords=["pollination", "ecology", "insect", "vision", "wavelength",
-                "color trianlge", "color hexagon", "trichromatic", "erg",
-                "electroretionogram"],
+                "color triangle", "color hexagon", "trichromatic", "erg",
+                "electroretinogram"],
       packages=["bumbleview"],
       include_package_data=True,
-      python_requires="3.7",
+      # python_requires="3.7",
       install_requires=[
           "pandas", "matplotlib", "seaborn", "scipy", "statsmodels"]
       )
