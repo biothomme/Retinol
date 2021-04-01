@@ -178,7 +178,7 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
     -------
     fig : matplotlib.Figure
     """
-    from convwale import Perceived_Signals
+    from bumblecore import Perceived_Signals
     import pandas as pd
 
     # load data

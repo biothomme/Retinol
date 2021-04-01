@@ -17,9 +17,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def load_data(file_name:str, header=None):
-    '''
-    Loading (example) files from the data directory
+
+def load_data(file_name: str, header=None):
+    """
+    Load (example) files from the data directory.
 
     Parameters
     ----------
@@ -30,7 +31,7 @@ def load_data(file_name:str, header=None):
     Returns
     -------
     df : a pd dataframe of the file
-    '''
+    """
     from importlib import resources
     try:
         with resources.open_text("data", file_name) as fid:
@@ -38,7 +39,7 @@ def load_data(file_name:str, header=None):
                 df = pd.read_csv(fid, header=header, index_col=0)
             else:
                 df = pd.read_csv(fid, header=None, index_col=0)
-                if header != None:
+                if header is not None:
                     df.columns = header
     except FileNotFoundError:
         print(f"There was no file {file_name}. Try again.")
@@ -46,9 +47,9 @@ def load_data(file_name:str, header=None):
     return df
 
 
-def get_header(name:str):
+def get_header(name: str):
     """
-    Return header for specific files of the data direcory
+    Return header for specific files of the data direcory.
 
     Parameters
     ----------
@@ -69,7 +70,7 @@ def get_header(name:str):
     return FILES_DICT[name] if name in FILES_DICT.keys() else None
 
 
-def get_file_name(name:str):
+def get_file_name(name: str):
     # help function to retrieve filenames
     FILES_DICT = {
         "bombus": "bombus_sensoring.csv",
@@ -83,7 +84,7 @@ def get_file_name(name:str):
 
 def input_flowers():
     """
-    Build an input field for uploading csv files from the notebook
+    Build an input field for uploading csv files from the notebook.
 
     Returns
     -------
@@ -96,9 +97,10 @@ def input_flowers():
     display(uploader)
     return uploader
 
+
 def apis_checkbox():
     """
-    Simple checkbox to choose use of bee recepetor sensitivity data
+    Build simple checkbox to choose use of bee recepetor sensitivity data.
 
     Returns
     -------
@@ -115,10 +117,10 @@ def apis_checkbox():
     display(cb)
     return cb
 
+
 def parse_flowers(uploader, example=False, data=True):
     """
-    Function to import the given data and store as a pandas df
-    Parameters
+    Import the given data and store as a pandas df Parameters
     ----------
     uploader : wrapper of file upload
     example : Bool, if example data should be used
@@ -153,8 +155,9 @@ def parse_flowers(uploader, example=False, data=True):
 
 def load_example(data=True):
     """
-    Loads the example data of alpine flowers (Primula, Gentiana, Rhododendron
-    and Silene).
+    Load the example data of alpine flowers.
+
+    (genera: Primula, Gentiana, Rhododendron and Silene)
 
     Parameters
     ----------
@@ -173,9 +176,9 @@ def load_example(data=True):
     return df
 
 
-def new_floral_spectra(wl_df:pd.DataFrame, meta_df:pd.DataFrame):
+def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame):
     """
-    Constructs a new object of the Floral_Spectra class with the given data
+    Construct a new object of the Floral_Spectra class with the given data.
 
     Parameters
     ----------
@@ -194,31 +197,34 @@ def new_floral_spectra(wl_df:pd.DataFrame, meta_df:pd.DataFrame):
     """
     try:
         floral_spectra = Floral_Spectra(wl_df,
-                                        genus_names=meta_df.iloc[:,0],
-                                        species_names=meta_df.iloc[:,1],
-                                        area_names=meta_df.iloc[:,2],
-                                        additional=meta_df.iloc[:,3])
+                                        genus_names=meta_df.iloc[:, 0],
+                                        species_names=meta_df.iloc[:, 1],
+                                        area_names=meta_df.iloc[:, 2],
+                                        additional=meta_df.iloc[:, 3])
     except ValueError:
         print("Your input files did not match. Please try again. Otherwise, the example data was loaded. You can use it instead.")
     return floral_spectra
+
 
 def get_dropdown_value(key_choice):
     # help function to read dropdown value
     return key_choice.options[key_choice.value][0]
 
+
 class Floral_Spectra:
     """
-    Class Floral_Spectra
+    Class Floral_Spectra.
+
     This implements floral spectra to convert those to excitation signals of
     insect vision cascades.
     It also allows different plots on the data and therefore needs the script
     'plotting.py'.
     """
-    
+
     def __init__(self, floral_spectra_data, genus_names=None,
-                  species_names=None, area_names=None, additional=None):
+                 species_names=None, area_names=None, additional=None):
         """
-        Constructor of Floral_Spectra object.
+        Construct new Floral_Spectra object.
 
         Parameters
         ----------
@@ -226,13 +232,13 @@ class Floral_Spectra:
             Needs to be a dataframe containing the spectral data for different
             samples.
         genus_names : optional
-            List of genus names corresponding to columns of 
+            List of genus names corresponding to columns of
             floral_spectra_data. The default is None.
         species_names : optional
-            List of species epithets corresponding to columns of 
+            List of species epithets corresponding to columns of
             floral_spectra_data. The default is None.
         area_names : optional
-            List of leaf areas corresponding to columns of 
+            List of leaf areas corresponding to columns of
             floral_spectra_data. The default is None.
         additional : optional
             List of additional information (e.g. specimen number)
@@ -247,7 +253,7 @@ class Floral_Spectra:
         self.data = floral_spectra_data.iloc[:, 1:]
         self.data.index = floral_spectra_data.iloc[:, 0]
 
-        df_mid =  pd.MultiIndex.from_arrays(
+        df_mid = pd.MultiIndex.from_arrays(
             [genus_names, area_names, species_names, additional],
             names=("genus", "area", "species", "specimen"))
         self.data.columns = df_mid
@@ -263,9 +269,10 @@ class Floral_Spectra:
 
     def make_directory(self):
         """
-        Builds a temporary directory in the background. Used to save plots
-        and data.
-        
+        Build temporary directory in the background.
+
+        Used to save plots and data.
+
         Returns
         -------
         None.
@@ -283,7 +290,7 @@ class Floral_Spectra:
 
     def normalize(self):
         """
-        Performs min max normalization / rescaling to [0,1] on wavelength
+        Perform min max normalization / rescaling to [0,1] on wavelength
         reflexion spectra.
 
         Returns
@@ -354,7 +361,7 @@ class Floral_Spectra:
                                           get_header("green_leaf_std"))
             df = self.data.loc[self.get_wavelength_index(), :]
             df.index = np.round(df.index)
-    
+
             # build arrays of minimal wl range for computation
             minimal_wl = max(
                 [min(d65_df.index), min(bombus_df.index),
@@ -454,7 +461,7 @@ class Floral_Spectra:
     def set_different_erg(self, erg_uploader, apis=False):
         """
         This function allows to use different insect ERG datasets, but not
-        only the standard Bombus one. 
+        only the standard Bombus one.
 
         Parameters
         ----------
@@ -551,7 +558,7 @@ class Floral_Spectra:
                      axis_label=True, spectrum_loci_annotations=True,
                      show_fig=False):
         """
-        Plots the color hexagon for a given dataset.
+        Plot the color hexagon for a given dataset.
 
         Parameters
         ----------
@@ -591,7 +598,7 @@ class Floral_Spectra:
                       axis_label=True, spectrum_loci_annotations=True,
                       show_fig=False):
         """
-        Plots the color triangle for a given dataset.
+        Plot the color triangle for a given dataset.
 
         Parameters
         ----------
@@ -925,12 +932,12 @@ def checkmake_dir_existence(directory):
 
 
 class Perceived_Signals:
-    '''
+    """
     Class Perceived_Signals
     Visual signals, which are present in a receptor specific dataframe
     can be stored in this class, to simplify its transformation to x, y values.
     In addition, this class contains the shapes of hexagon and triangle.
-    '''
+    """
     TRIANGLE_HEIGHT = np.sqrt(3/4)
     TRIANGLE_COORDINATES = [[-TRIANGLE_HEIGHT, 0, TRIANGLE_HEIGHT, -TRIANGLE_HEIGHT],
                             [-.5, 1, -.5, -.5]]
