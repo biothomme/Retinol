@@ -47,6 +47,37 @@ def load_data(file_name: str, header=None):
     return df
 
 
+def load_data_colab(file_name: str, header=None):
+    """
+    Load (example) files from the git directory in colab.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    FILES_DICT = {
+        "bombus_sensoring.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/bombus_sensoring.csv",
+        "apis_sensoring.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/apis_sensoring.csv",
+        "d65_standards.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/d65_standards.csv",
+        "background_green_leaf.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/background_green_leaf.csv"
+        }
+    from importlib import resources
+    try:
+        if header == "infer":
+            df = pd.read_csv(FILES_DICT[file_name], header=header, index_col=0)
+        else:
+            df = pd.read_csv(FILES_DICT[file_name], header=None, index_col=0)
+            if header is not None:
+                df.columns = header
+    except FileNotFoundError:
+        print(f"There was no file {file_name}. Try again.")
+        return None
+    return df
+
+
 def get_header(name: str):
     """
     Return header for specific files of the data direcory.
@@ -118,13 +149,14 @@ def apis_checkbox():
     return cb
 
 
-def parse_flowers(uploader, example=False, data=True):
+def parse_flowers(uploader, example=False, data=True, colab=False):
     """
     Import the given data and store as a pandas df Parameters
     ----------
     uploader : wrapper of file upload
     example : Bool, if example data should be used
     data : Bool, if the corresponding file contains spectrum data
+    colab : Bool, Defines if execting a colab notebook.
 
     Returns
     -------
@@ -134,15 +166,15 @@ def parse_flowers(uploader, example=False, data=True):
     import codecs
     from io import StringIO
     if example:
-        return load_example(data=data)
+        return load_example(data=data, colab=colab)
     try:
         data_input = list(uploader.value.values())[0]
     except IndexError:
         print("You did not successfully select a file. The example file will be used.")
-        return load_example(data=data)
+        return load_example(data=data, colab=colab)
     csv_data = codecs.decode(data_input["content"], encoding="utf-8")
     # check if comma or semicolon separated
-    newline_count = csv_data.count('\n')
+    # newline_count = csv_data.count('\n')
     for seperator in [",", ";", "\t"]:
         seperator_counts = [line.count(seperator) for line in csv_data.split("\n")]
         if (seperator_counts[0] != 0 and len(set(seperator_counts[:-1])) == 1):
@@ -153,7 +185,7 @@ def parse_flowers(uploader, example=False, data=True):
     return
 
 
-def load_example(data=True):
+def load_example(data=True, colab=False):
     """
     Load the example data of alpine flowers.
 
@@ -163,6 +195,8 @@ def load_example(data=True):
     ----------
     data : Bool, if it should be the spectrum data file that will be returned.
         Otherwise, meta information data is returned.
+    colab : Boolean
+        Defines if execting a colab notebook.
 
     Returns
     -------
@@ -170,13 +204,17 @@ def load_example(data=True):
 
     """
     if data:
-        df = pd.read_csv("data/xmpl_data.csv", header=None, sep=",")
+        df = pd.read_csv(
+            "data/xmpl_data.csv", header=None, sep=",") if (not colab) else pd.read_csv(
+                "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/xmpl_data.csv", header=None, sep=",")
     else:
-        df = pd.read_csv("data/xmpl_meta.csv", header=None, sep=",")
+        df = pd.read_csv(
+            "data/xmpl_meta.csv", header=None, sep=",") if (not colab) else pd.read_csv(
+                "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/xmpl_meta.csv", header=None, sep=",")
     return df
 
 
-def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame):
+def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame, colab=False):
     """
     Construct a new object of the Floral_Spectra class with the given data.
 
@@ -188,6 +226,8 @@ def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame):
         Dataframe that maps metainformation (genus, species, leaf area and
         additional information) to the corresponding columns of the
         spectrum dataframe.
+    colab : Boolean
+        Defines if execting a colab notebook.
 
     Returns
     -------
@@ -200,7 +240,8 @@ def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame):
                                         genus_names=meta_df.iloc[:, 0],
                                         species_names=meta_df.iloc[:, 1],
                                         area_names=meta_df.iloc[:, 2],
-                                        additional=meta_df.iloc[:, 3])
+                                        additional=meta_df.iloc[:, 3],
+                                        colab=colab)
     except ValueError:
         print("Your input files did not match. Please try again. Otherwise, the example data was loaded. You can use it instead.")
     return floral_spectra
@@ -222,7 +263,7 @@ class Floral_Spectra:
     """
 
     def __init__(self, floral_spectra_data, genus_names=None,
-                 species_names=None, area_names=None, additional=None):
+                 species_names=None, area_names=None, additional=None, colab=False):
         """
         Construct new Floral_Spectra object.
 
@@ -244,6 +285,8 @@ class Floral_Spectra:
             List of additional information (e.g. specimen number)
             corresponding to columns of floral_spectra_data. The default is
             None.
+        colab : otional
+            Set to True if executing in a colab notebook. Default is False.
 
         Returns
         -------
@@ -262,9 +305,13 @@ class Floral_Spectra:
         self.hexagon_df = None
         self.triangle_df = None
         self.pairwise_color_dist = None
-        self.erg = load_data(get_file_name("bombus"), get_header("bombus"))
+        if not colab:
+            self.erg = load_data(get_file_name("bombus"), get_header("bombus"))
+        else:
+            self.erg = load_data_colab(get_file_name("bombus"), get_header("bombus"))
         self.changed_erg = False
         self.make_directory()
+        self.colab=colab
         return
 
     def make_directory(self):
@@ -356,9 +403,14 @@ class Floral_Spectra:
         if (not self.converted_to_iv) or (self.changed_erg):
             self.normalize()
             bombus_df = self.erg
-            d65_df = load_data(get_file_name("d65"), get_header("d65"))
-            green_leaf_std_df = load_data(get_file_name("green_leaf_std"),
-                                          get_header("green_leaf_std"))
+            if self.colab:
+                d65_df = load_data_colab(get_file_name("d65"), get_header("d65"))
+                green_leaf_std_df = load_data_colab(get_file_name("green_leaf_std"),
+                                                    get_header("green_leaf_std"))
+            else:
+                d65_df = load_data(get_file_name("d65"), get_header("d65"))
+                green_leaf_std_df = load_data(get_file_name("green_leaf_std"),
+                                            get_header("green_leaf_std"))
             df = self.data.loc[self.get_wavelength_index(), :]
             df.index = np.round(df.index)
 
@@ -479,7 +531,10 @@ class Floral_Spectra:
         import codecs
         from io import StringIO
         if apis:
-            self.erg = load_data(get_file_name("apis"), get_header("apis"))
+            if self.colab:
+                self.erg = load_data_colab(get_file_name("apis"), get_header("apis"))
+            else:
+                self.erg = load_data(get_file_name("apis"), get_header("apis"))
             self.changed_erg = True
             return
         try:
@@ -490,7 +545,7 @@ class Floral_Spectra:
             return
         csv_data = codecs.decode(data["content"], encoding="utf-8")
         # check if comma or semicolon separated
-        newline_count = csv_data.count('\n')
+        # newline_count = csv_data.count('\n')
         for seperator in [",", ";", "\t"]:
             seperator_counts = [
                 line.count(seperator) for line in csv_data.split("\n")]
