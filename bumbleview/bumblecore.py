@@ -583,7 +583,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from plotting import single_plot
+        from bumbleview.plotting import single_plot
         self.normalize()
         valid_genus = genus is None
         if not valid_genus:
@@ -632,7 +632,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from plotting import polygon_plot
+        from bumbleview.plotting import polygon_plot
         self.bombus_vision()
         plotting_hex_df = self.subset_plotting_frame(
             self.hexagon_df, genus=genus, area=area)
@@ -672,7 +672,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from plotting import polygon_plot
+        from bumbleview.plotting import polygon_plot
         self.bombus_vision()
         plotting_tri_df = self.subset_plotting_frame(
             self.triangle_df, genus=genus, area=area)
@@ -713,7 +713,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from plotting import pca_snsplot
+        from bumbleview.plotting import pca_snsplot
         self.bombus_vision()
         if data_type == "physical":
             df = self.data
@@ -761,8 +761,8 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from plotting import distance_dendrogram
-        from plotting import distance_heatmap
+        from bumbleview.plotting import distance_dendrogram
+        from bumbleview.plotting import distance_heatmap
         PLOT_TYPE_DICT = {
             "dendrogram": distance_dendrogram,
             "heatmap": distance_heatmap
