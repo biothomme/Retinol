@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 os.chdir("/Users/Thomsn/Desktop/island_in_the_sun/python/2021_03_bumbleview/bumbleview")
-from bumbleview import bumblecore as bc
+import bumblecore as bc
 
 wl_df = pd.read_csv("data/xmpl_data.csv", sep=",", header=None)
 meta_df = pd.read_csv("data/xmpl_meta.csv", sep=",", header=None)
