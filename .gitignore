@@ -130,4 +130,5 @@ dmypy.json
 
 
 # manual
+bumbleview/data/macroglossum_sensoring.csv
 bumbleview/.DS_Store
