@@ -95,6 +95,7 @@ def get_header(name: str):
     FILES_DICT = {
         "bombus": "infer",
         "apis": "infer",
+        "lucilia": "infer",
         "d65": ["reflectance"],
         "green_leaf_std": ["reflectance"]
         }
