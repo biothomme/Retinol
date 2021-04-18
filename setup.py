@@ -9,7 +9,7 @@ README = (CURRENT / "README.md").read_text()
 
 # main setup
 setup(name="bumbleview",
-      version="0.2.0",
+      version="0.2.1",
       description=
       "Convert physical spectra to excitation potential in insect eyes",
       long_description=README,
