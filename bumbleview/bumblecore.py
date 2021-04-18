@@ -573,6 +573,9 @@ class Floral_Spectra:
                 input_frame = pd.read_csv(
                     StringIO(csv_data), sep=seperator,
                     header="infer", index_col=0)
+                input_frame = input_frame.loc[
+                    range(max(300, input_frame.index[0]),
+                          min(700, input_frame.index[0]), 5), :]
                 if input_frame.shape[1] == 3:
                     self.erg = input_frame
                 else:
@@ -1040,7 +1043,7 @@ class Floral_Spectra:
             from IPython.display import FileLink
             from IPython.display import display
         output_zip = self.directory.split("/")[-1]
-        shutil.make_archive(output_zip, "zip", self.temp.name)
+        shutil.make_archive(output_zip, "zip", self.temp.name)  
         if self.colab:
             files.download(f"{output_zip}.zip")
         else:
