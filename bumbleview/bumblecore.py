@@ -131,9 +131,13 @@ def input_flowers():
     return uploader
 
 
-def apis_checkbox():
+def apis_checkbox(lucilia=False):
     """
     Build simple checkbox to choose use of bee recepetor sensitivity data.
+    
+    Parameters
+    -------
+    lucilia : defines if Lucilia set is meant; default is false
 
     Returns
     -------
@@ -144,7 +148,7 @@ def apis_checkbox():
     import ipywidgets as widgets
     cb = widgets.Checkbox(
         value=False,
-        description='Load Apis mellifera data',
+        description=f'Load {"Lucilia" if lucilia else "Apis mellifera"} data',
         disabled=False
     )
     display(cb)
@@ -597,7 +601,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import single_plot
+        from bumblecore.plotting import single_plot
         self.normalize()
         valid_genus = genus is None
         if not valid_genus:
@@ -646,7 +650,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import polygon_plot
+        from bumblecore.plotting import polygon_plot
         self.bombus_vision()
         if self.trichromatic:
             plotting_hex_df = self.subset_plotting_frame(
@@ -689,7 +693,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import polygon_plot
+        from bumblecore.plotting import polygon_plot
         self.bombus_vision()
         if self.trichromatic:
             plotting_tri_df = self.subset_plotting_frame(
@@ -736,7 +740,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import polygon_plot
+        from bumblecore.plotting import polygon_plot
         self.bombus_vision()
         if not self.trichromatic:
             plotting_tetra_df = self.subset_plotting_frame(
@@ -780,7 +784,7 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import pca_snsplot
+        from bumblecore.plotting import pca_snsplot
         self.bombus_vision()
         if data_type == "physical":
             df = self.data
@@ -828,8 +832,8 @@ class Floral_Spectra:
         -------
         fig : Figure as matplotlib.figure.
         """
-        from bumbleview.plotting import distance_dendrogram
-        from bumbleview.plotting import distance_heatmap
+        from bumblecore.plotting import distance_dendrogram
+        from bumblecore.plotting import distance_heatmap
         PLOT_TYPE_DICT = {
             "dendrogram": distance_dendrogram,
             "heatmap": distance_heatmap

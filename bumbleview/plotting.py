@@ -251,7 +251,7 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
                 va = "top"
                 ha = "center"
                 #  place annotation at .75
-                ax.text(-(i-.5)*1.5, -(i-.5)*1.5,
+                ax.text(-(i-.5)*1.5, -(j-.5)*1.5,
                         f'{receptor}/\n{receptor2}', fontsize=10,
                         verticalalignment=va, horizontalalignment=ha,
                         color="darkgrey")
