@@ -62,7 +62,8 @@ def load_data_colab(file_name: str, header=None):
         "bombus_sensoring.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/bombus_sensoring.csv",
         "apis_sensoring.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/apis_sensoring.csv",
         "d65_standards.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/d65_standards.csv",
-        "background_green_leaf.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/background_green_leaf.csv"
+        "background_green_leaf.csv": "https://raw.githubusercontent.com/biothomme/Retinol/bf15f2dcde2cf96e198d89a6e73e1dc2a1f3a609/bumbleview/data/background_green_leaf.csv",
+        "lucilia_sensoring.csv": "https://raw.githubusercontent.com/biothomme/Retinol/36388668bddcd7c620a1a157deaadbac600a7bff/bumbleview/data/lucilia_sensoring.csv"
         }
     from importlib import resources
     try:
@@ -106,6 +107,7 @@ def get_file_name(name: str):
     FILES_DICT = {
         "bombus": "bombus_sensoring.csv",
         "apis": "apis_sensoring.csv",
+        "lucilia": "lucilia_sensoring.csv",
         "d65": "d65_standards.csv",
         "green_leaf_std": "background_green_leaf.csv"
         }
@@ -235,16 +237,18 @@ def new_floral_spectra(wl_df: pd.DataFrame, meta_df: pd.DataFrame, colab=False):
         new Floral_Spectra object for the input dataset
 
     """
-    try:
-        floral_spectra = Floral_Spectra(wl_df,
-                                        genus_names=meta_df.iloc[:, 0],
-                                        species_names=meta_df.iloc[:, 1],
-                                        area_names=meta_df.iloc[:, 2],
-                                        additional=meta_df.iloc[:, 3],
-                                        colab=colab)
-    except ValueError:
-        print("Your input files did not match. Please try again. Otherwise, the example data was loaded. You can use it instead.")
+    # try:
+    floral_spectra = Floral_Spectra(wl_df,
+                                    genus_names=meta_df.iloc[:, 0],
+                                    species_names=meta_df.iloc[:, 1],
+                                    area_names=meta_df.iloc[:, 2],
+                                    additional=meta_df.iloc[:, 3],
+                                    colab=colab)
+    print(floral_spectra)
     return floral_spectra
+    # except ValueError:
+    #     print("Your input files did not match. Please try again. Otherwise, the example data was loaded. You can use it instead.")
+    # return 
 
 
 def get_dropdown_value(key_choice):
@@ -263,7 +267,8 @@ class Floral_Spectra:
     """
 
     def __init__(self, floral_spectra_data, genus_names=None,
-                 species_names=None, area_names=None, additional=None, colab=False):
+                 species_names=None, area_names=None, additional=None,
+                 colab=False):
         """
         Construct new Floral_Spectra object.
 
@@ -308,10 +313,13 @@ class Floral_Spectra:
         if not colab:
             self.erg = load_data(get_file_name("bombus"), get_header("bombus"))
         else:
-            self.erg = load_data_colab(get_file_name("bombus"), get_header("bombus"))
+            self.erg = load_data_colab(
+                get_file_name("bombus"), get_header("bombus"))
         self.changed_erg = False
+        self.colab = colab
+        self.trichromatic = True
+
         self.make_directory()
-        self.colab=colab
         return
 
     def make_directory(self):
@@ -402,6 +410,7 @@ class Floral_Spectra:
         """
         if (not self.converted_to_iv) or (self.changed_erg):
             self.normalize()
+            self.trichromatic = self.erg.shape[1] == 3
             bombus_df = self.erg
             if self.colab:
                 d65_df = load_data_colab(get_file_name("d65"), get_header("d65"))
@@ -447,13 +456,13 @@ class Floral_Spectra:
             for i, receptor in enumerate(bombus_df.columns):
                 qc_recepetor = pd.DataFrame(
                     np.apply_along_axis(lambda x: x *
-                                        bombus_array[:,i]*
+                                        bombus_array[:, i] *
                                         d65_array, 0, data_array),
                     index=minimal_range_index,
                     columns=df.columns)
                 qc_specific[receptor] = qc_recepetor
 
-            # integral of quantum catch general and 
+            # integral of quantum catch general and
             # receptor specific sensitivity factors R
             qc_general_integral = np.sum(qc_general, axis=0)
             sensitivity_factors = qc_general_integral.apply(np.reciprocal, 0)
@@ -510,7 +519,7 @@ class Floral_Spectra:
             self.changed_erg = False
         return
 
-    def set_different_erg(self, erg_uploader, apis=False):
+    def set_different_erg(self, erg_uploader, apis=False, lucilia=False):
         """
         This function allows to use different insect ERG datasets, but not
         only the standard Bombus one.
@@ -522,6 +531,9 @@ class Floral_Spectra:
         apis : Bool, optional
             Defines, if the Apis mellifera set should be used. The default
             is False.
+        lucilia : Bool, optional
+            Defines, if the Lucilia set should be used (Tetrachromatic). The default
+            is False.
 
         Returns
         -------
@@ -530,13 +542,15 @@ class Floral_Spectra:
         """
         import codecs
         from io import StringIO
-        if apis:
-            if self.colab:
-                self.erg = load_data_colab(get_file_name("apis"), get_header("apis"))
-            else:
-                self.erg = load_data(get_file_name("apis"), get_header("apis"))
-            self.changed_erg = True
-            return
+        for tax_name, tax in zip(["apis", "lucilia"], [apis, lucilia]):
+            if tax:
+                if self.colab:
+                    self.erg = load_data_colab(
+                        get_file_name(tax_name), get_header(tax_name))
+                else:
+                    self.erg = load_data(get_file_name(tax_name), get_header(tax_name))
+                self.changed_erg = True
+                return
         try:
             data = list(erg_uploader.value.values())[0]
         except IndexError:
@@ -634,18 +648,21 @@ class Floral_Spectra:
         """
         from bumbleview.plotting import polygon_plot
         self.bombus_vision()
-        plotting_hex_df = self.subset_plotting_frame(
-            self.hexagon_df, genus=genus, area=area)
-        plotting_hex_sl = self.subset_plotting_frame(
-            self.hexagon_sl, genus=genus, area=area)
-        fig = polygon_plot(
-            plotting_hex_df, plotting_hex_sl, axis_label=axis_label,
-            spectrum_loci_annotations=spectrum_loci_annotations)
-        checkmake_dir_existence(f"{self.directory}/hexagon")
-        fig.savefig(f"{self.directory}/hexagon/ins_vis_hex_{genus}_{area if area != None else 'all'}.pdf")
-        if show_fig:
-            return fig
-        plt.close(fig)
+        if self.trichromatic:
+            plotting_hex_df = self.subset_plotting_frame(
+                self.hexagon_df, genus=genus, area=area)
+            plotting_hex_sl = self.subset_plotting_frame(
+                self.hexagon_sl, genus=genus, area=area)
+            fig = polygon_plot(
+                plotting_hex_df, plotting_hex_sl, axis_label=axis_label,
+                spectrum_loci_annotations=spectrum_loci_annotations)
+            checkmake_dir_existence(f"{self.directory}/hexagon")
+            fig.savefig(f"{self.directory}/hexagon/ins_vis_hex_{genus}_{area if area != None else 'all'}.pdf")
+            if show_fig:
+                return fig
+            plt.close(fig)
+        else:
+            print("This is not possible, as you are not using a trichromatic ERG.")
         return
 
 
@@ -674,20 +691,70 @@ class Floral_Spectra:
         """
         from bumbleview.plotting import polygon_plot
         self.bombus_vision()
-        plotting_tri_df = self.subset_plotting_frame(
-            self.triangle_df, genus=genus, area=area)
-        plotting_tri_sl = self.subset_plotting_frame(
-            self.triangle_sl, genus=genus, area=area)
-        fig = polygon_plot(
-            plotting_tri_df, plotting_tri_sl, plot_type="triangle",
-            axis_label=axis_label,
-            spectrum_loci_annotations=spectrum_loci_annotations)
-        checkmake_dir_existence(f"{self.directory}/triangle")
-        fig.savefig(
-            f"{self.directory}/triangle/ins_vis_tri_{genus}_{area if area != None else 'all'}.pdf")
-        if show_fig:
-            return fig
-        plt.close(fig)
+        if self.trichromatic:
+            plotting_tri_df = self.subset_plotting_frame(
+                self.triangle_df, genus=genus, area=area)
+            plotting_tri_sl = self.subset_plotting_frame(
+                self.triangle_sl, genus=genus, area=area)
+            fig = polygon_plot(
+                plotting_tri_df, plotting_tri_sl, plot_type="triangle",
+                axis_label=axis_label,
+                spectrum_loci_annotations=spectrum_loci_annotations)
+            checkmake_dir_existence(f"{self.directory}/triangle")
+            fig.savefig(
+                f"{self.directory}/triangle/ins_vis_tri_{genus}_{area if area != None else 'all'}.pdf")
+            if show_fig:
+                return fig
+            plt.close(fig)
+        else:
+            print("This is not possible, as you are not using a trichromatic ERG.")
+        return
+
+
+    def plot_tetrachromate(self, genus=None, area=None,
+                           axis_label=True, spectrum_loci_annotations=True,
+                           show_fig=False):
+        """
+        Plot tetrachrmoic receptor model for a given dataset.
+        
+        Axes are (receptor1 - receptor2) against (receptor3 - receptor4)
+
+        Parameters
+        ----------
+        genus : Name of genus to select dataset for.
+        area : Name of leaf area to select dataset for.
+        axis_label : TYPE, optional
+            Defines, if the axislabel should be visible. The default is True.
+        spectrum_loci_annotations : TYPE, optional
+            Defines, if the text annotations of wavelength in nm should be set
+            for the spectrum locus. The default is True.
+        show_fig : bool, optional
+            Defines if the figure should be returned to show it. 
+            Default is false.
+
+        Returns
+        -------
+        fig : Figure as matplotlib.figure.
+        """
+        from bumbleview.plotting import polygon_plot
+        self.bombus_vision()
+        if not self.trichromatic:
+            plotting_tetra_df = self.subset_plotting_frame(
+                self.hexagon_df, genus=genus, area=area)
+            plotting_tetra_sl = self.subset_plotting_frame(
+                self.hexagon_sl, genus=genus, area=area)
+            fig = polygon_plot(
+                plotting_tetra_df, plotting_tetra_sl, plot_type="tetra",
+                axis_label=axis_label,
+                spectrum_loci_annotations=spectrum_loci_annotations)
+            checkmake_dir_existence(f"{self.directory}/tetra_model")
+            fig.savefig(
+                f"{self.directory}/tetra_model/ins_vis_tetra_{genus}_{area if area != None else 'all'}.pdf")
+            if show_fig:
+                return fig
+            plt.close(fig)
+        else:
+            print("This is not possible, as you are not using a tetrachromatic ERG.")
         return
 
 
@@ -855,8 +922,8 @@ class Floral_Spectra:
         Saves the data corresponding to the plot type:
             "wl_spectra", "pca_physical": min max normalized wavelength 
                 spectra
-            "hexagon", "pca_insect_vision": excitataion values (E) for all  
-                receptor types and samples
+            "hexagon", "pca_insect_vision", "tetra": excitataion values (E) 
+                for all receptor types and samples
             "triangle": relative quantum catch absorpion values (P_rel) for
                 all recepters and samples
              "heatmap", "dendrogram": Pairwise distance matrix of euclidean
@@ -874,6 +941,8 @@ class Floral_Spectra:
         FILE_DICT = {"wl_spectra": (self.data, "wl_spectra_normalized.csv"),
                      "hexagon": (
                          self.hexagon_df, "ins_vis_hex_excitations.csv"),
+                     "tetra": (
+                         self.hexagon_df, "ins_vis_tet_excitations.csv"),
                      "triangle": (
                          self.triangle_df, "ins_vis_tri_rel_absorptions.csv"),
                      "pca_physical": (self.data, "wl_spectra_normalized.csv"),
@@ -908,9 +977,9 @@ class Floral_Spectra:
 
         Parameters
         ----------
-        plot_type : Can be 'wl_spectra', 'hexagon', 'triangle', 'pca_physical',
-        'pca_insect_vision', 'heatmap' or 'dendrogram'. The default is
-        "wl_spectra".
+        plot_type : Can be 'wl_spectra', 'hexagon', 'triangle', 'tetra',
+        'pca_physical', 'pca_insect_vision', 'heatmap' or 'dendrogram'. The 
+        default is 'wl_spectra'.
 
         Returns
         -------
@@ -925,6 +994,8 @@ class Floral_Spectra:
                     self.plot_wl_spectra(genus, area)
                 elif plot_type == "hexagon":
                     self.plot_hexagon(genus=genus, area=area)
+                elif plot_type == "tetra":
+                    self.plot_tetrachromate(genus=genus, area=area)
                 elif plot_type == "triangle":
                     self.plot_triangle(genus=genus, area=area)
                 elif plot_type == "pca_physical":
@@ -1022,6 +1093,7 @@ class Perceived_Signals:
 
         """
         self.data = signals_df.copy()
+        self.tetrachromatic = signals_df.shape[1] == 4
         self.x = False
         self.y = False
         self.taxa = np.array([])
@@ -1038,9 +1110,13 @@ class Perceived_Signals:
 
         """
         if not self.x:
-            self.data.loc[:, "x"] = (
-                self.data.iloc[:, 2]-self.data.iloc[
-                    :, 0]) * self.TRIANGLE_HEIGHT
+            if self.tetrachromatic:
+                self.data.loc[:, "x"] = (
+                    self.data.iloc[:, 0]-self.data.iloc[:, 1])
+            else:
+                self.data.loc[:, "x"] = (
+                    self.data.iloc[:, 2]-self.data.iloc[
+                        :, 0]) * self.TRIANGLE_HEIGHT
             self.x = True
         return self.data["x"]
 
@@ -1055,9 +1131,13 @@ class Perceived_Signals:
 
         """
         if not self.y:
-            self.data.loc[:, "y"] = (
-                self.data.iloc[:, 1]) - (
-                    self.data.iloc[:, 2]+self.data.iloc[:, 0])/2
+            if self.tetrachromatic:
+                self.data.loc[:, "y"] = (
+                    self.data.iloc[:, 2]-self.data.iloc[:, 3])
+            else:
+                self.data.loc[:, "y"] = (
+                    self.data.iloc[:, 1]) - (
+                        self.data.iloc[:, 2]+self.data.iloc[:, 0])/2
             self.y = True
         return self.data["y"]
 

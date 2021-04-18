@@ -10,18 +10,20 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-os.chdir("/Users/Thomsn/Desktop/island_in_the_sun/python/2021_03_bumbleview/bumbleview/bumbleview")
-import convwale
-from convwale import Perceived_Signals
+os.chdir("/Users/Thomsn/Desktop/island_in_the_sun/python/2021_03_bumbleview/bumbleview")
+from bumbleview import bumblecore as bc
 
-wl_df = pd.read_csv("data/xmpl_data.csv", header=None)
-meta_df = pd.read_csv("data/xmpl_meta.csv", header=None)
+wl_df = pd.read_csv("data/xmpl_data.csv", sep=",", header=None)
+meta_df = pd.read_csv("data/xmpl_meta.csv", sep=",", header=None)
 
 # build new object
-flowers = convwale.new_floral_spectra(wl_df, meta_df)
+flowers = bc.new_floral_spectra(wl_df, meta_df, colab=True)
+flowers.erg = bc.load_data_colab(bc.get_file_name("lucilia"), bc.get_header("bombus"))
+flowers.bombus_vision()
 
-fig1 = flowers.plot_triangle(genus="Rhododendron")
-fig2 = flowers.plot_hexagon(genus="Gentiana", area="ventmed")
+# fig1 = flowers.plot_triangle(genus="Rhododendron")
+# fig2 = flowers.plot_hexagon(genus="Gentiana", area="ventmed")
+fig2 = flowers.plot_tetrachromate(genus="Gentiana", area="ventmed", show_fig=True)
 
 # flowers.bombus_vision()
 flowers.plot_pca(genus="Rhododendron", area="ventr", pc_a=1, pc_b=2,
@@ -31,3 +33,4 @@ flowers.pairwise_color_dist
 flowers.data
 
 flowers.triangle_df.transpose().copy()
+

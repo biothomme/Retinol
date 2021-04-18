@@ -161,15 +161,15 @@ def wavelength_to_rgb(wavelength, gamma=0.8):
 def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
                  axis_label=True, spectrum_loci_annotations=True):
     """
-    Plots a color polygon (triangle or hexagon)
+    Plots a color polygon (triangle or hexagon) or tetrachromatic model
 
     Parameters
     ----------
     received_signals_df : dataframe containing the samples
     spectrum_loci_df : dataframe containing the positions for the spectrum
         locus
-    plot_type : Defines the type of polygon: "triangle" or "hexagon". The
-        ‚default is "hexagon".
+    plot_type : Defines the type of polygon: "triangle", "tetra" or "hexagon". 
+        The default is "hexagon".
     axis_label : Defines if axis label should be visible. The default is True.
     spectrum_loci_annotations : Defines if wl annotations for spectrum
     locus should be visible. The default is True.
@@ -178,7 +178,7 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
     -------
     fig : matplotlib.Figure
     """
-    from bumblecore import Perceived_Signals
+    from bumbleview.bumblecore import Perceived_Signals
     import pandas as pd
 
     # load data
@@ -227,24 +227,36 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
     plt.gca().set_aspect('equal', adjustable='box')
 
     # add annotations to corners
-    for i, receptor in enumerate(signals_received.data.columns.values[0:3]):
-        receptor2 = signals_received.data.columns.values[0:3][(i+1)//3]
-        va = "bottom" if i == 1 else "top"
-        ha = "left" if i == 2 else ("center" if i == 1 else "right")
-        ax.text(signals_received.TRIANGLE_COORDINATES[0][i],
-                signals_received.TRIANGLE_COORDINATES[1][i],
-                receptor, fontsize=10,
-                verticalalignment=va, horizontalalignment=ha)
-    if plot_type.lower() == "hexagon":
+    if plot_type.lower() in ["hexagon", "triangle"]:
         for i, receptor in enumerate(signals_received.data.columns.values[0:3]):
-            receptor2 = signals_received.data.columns.values[0:3][(i+1)%3]
-            va = "top" if i == 2 else "bottom"
-            ha = "center" if i == 2 else ("left" if i == 1 else "right")
-            ax.text(signals_received.HEXAGON_COORDINATES[0][2*i+1],
-                    signals_received.HEXAGON_COORDINATES[1][2*i+1],
-                    f'{receptor}/\n{receptor2}', fontsize=10,
+            receptor2 = signals_received.data.columns.values[0:3][(i+1)//3]
+            va = "bottom" if i == 1 else "top"
+            ha = "left" if i == 2 else ("center" if i == 1 else "right")
+            ax.text(signals_received.TRIANGLE_COORDINATES[0][i],
+                    signals_received.TRIANGLE_COORDINATES[1][i],
+                    receptor, fontsize=10,
                     verticalalignment=va, horizontalalignment=ha)
+        if plot_type.lower() == "hexagon":
+            for i, receptor in enumerate(signals_received.data.columns.values[0:3]):
+                receptor2 = signals_received.data.columns.values[0:3][(i+1)%3]
+                va = "top" if i == 2 else "bottom"
+                ha = "center" if i == 2 else ("left" if i == 1 else "right")
+                ax.text(signals_received.HEXAGON_COORDINATES[0][2*i+1],
+                        signals_received.HEXAGON_COORDINATES[1][2*i+1],
+                        f'{receptor}/\n{receptor2}', fontsize=10,
+                        verticalalignment=va, horizontalalignment=ha)
+    elif plot_type.lower() == "tetra":
+        for i, receptor in enumerate(signals_received.data.columns.values[0:2]):
+            for j, receptor2 in enumerate(signals_received.data.columns.values[2:4]):
+                va = "top"
+                ha = "center"
+                #  place annotation at .75
+                ax.text(-(i-.5)*1.5, -(i-.5)*1.5,
+                        f'{receptor}/\n{receptor2}', fontsize=10,
+                        verticalalignment=va, horizontalalignment=ha,
+                        color="darkgrey")
     # plot polygon shape
+    if plot_type.lower() == "hexagon":
         ax.plot(signals_received.HEXAGON_COORDINATES[0],
             signals_received.HEXAGON_COORDINATES[1], color="grey")
         ax.set_xlim([min(signals_received.HEXAGON_COORDINATES[0]),
@@ -258,9 +270,12 @@ def polygon_plot(received_signals_df, spectrum_loci_df, plot_type="hexagon",
                      max(signals_received.TRIANGLE_COORDINATES[0])])
         ax.set_ylim([min(signals_received.TRIANGLE_COORDINATES[1]),
                      max(signals_received.TRIANGLE_COORDINATES[1])])
+    elif plot_type.lower() == "tetra":
+        ax.set_xlim([-1, 1])
+        ax.set_ylim([-1, 1])
     else:
         print(f"""Error: Plot type {plot_type} was not recognized. Please try 
-              either 'hexagon' or 'triangle'.""")
+              either 'hexagon', 'tetra' or 'triangle'.""")
         return
     return fig
 
