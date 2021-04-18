@@ -752,9 +752,9 @@ class Floral_Spectra:
                 plotting_tetra_df, plotting_tetra_sl, plot_type="tetra",
                 axis_label=axis_label,
                 spectrum_loci_annotations=spectrum_loci_annotations)
-            checkmake_dir_existence(f"{self.directory}/tetra_model")
+            checkmake_dir_existence(f"{self.directory}/tetra")
             fig.savefig(
-                f"{self.directory}/tetra_model/ins_vis_tetra_{genus}_{area if area != None else 'all'}.pdf")
+                f"{self.directory}/tetra/ins_vis_tetra_{genus}_{area if area != None else 'all'}.pdf")
             if show_fig:
                 return fig
             plt.close(fig)
@@ -813,6 +813,7 @@ class Floral_Spectra:
             return
         print("Did not find given genus. Please check and try again.")
         return
+
 
     def plot_distances(self, genus=None, area=None, plot_type="heatmap",
                        show_fig=False):
@@ -997,12 +998,6 @@ class Floral_Spectra:
             for area in areas:
                 if plot_type == "wl_spectra":
                     self.plot_wl_spectra(genus, area)
-                elif plot_type == "hexagon":
-                    self.plot_hexagon(genus=genus, area=area)
-                elif plot_type == "tetra":
-                    self.plot_tetrachromate(genus=genus, area=area)
-                elif plot_type == "triangle":
-                    self.plot_triangle(genus=genus, area=area)
                 elif plot_type == "pca_physical":
                     self.plot_pca(genus=genus, area=area)
                 elif plot_type == "pca_insect_vision":
@@ -1013,11 +1008,21 @@ class Floral_Spectra:
                 elif plot_type == "dendrogram":
                     self.plot_distances(
                         genus=genus, area=area, plot_type="dendrogram")
+                elif self.trichromatic:
+                    if plot_type == "hexagon":
+                        self.plot_hexagon(genus=genus, area=area)
+                    elif plot_type == "triangle":
+                        self.plot_triangle(genus=genus, area=area)
+                    else:
+                        print(f"Plotting type {plot_type} not supported for trichromatic ERGs.")
+                elif plot_type == "tetra":
+                    self.plot_tetrachromate(genus=genus, area=area)
                 else:
-                    print(f"Plotting type {plot_type} was not recognized.")
+                    print(f"Plotting type {plot_type} not supported for tetrachromatic ERGs.")
                     return
         self.save_data(plot_type)
         return
+
 
     def download_data(self):
         """
@@ -1029,11 +1034,17 @@ class Floral_Spectra:
 
         """
         import shutil
-        from IPython.display import FileLink
-        from IPython.display import display
+        if self.colab:
+            from google.colab import files
+        else:
+            from IPython.display import FileLink
+            from IPython.display import display
         output_zip = self.directory.split("/")[-1]
         shutil.make_archive(output_zip, "zip", self.temp.name)
-        display(FileLink(f"{output_zip}.zip"))
+        if self.colab:
+            files.download(f"{output_zip}.zip")
+        else:
+            display(FileLink(f"{output_zip}.zip"))
 
     def close_temporary_dir(self):
         # help function to close temporary dir
