@@ -575,7 +575,7 @@ class Floral_Spectra:
                     header="infer", index_col=0)
                 input_frame = input_frame.loc[
                     range(max(300, input_frame.index[0]),
-                          min(700, input_frame.index[0]), 5), :]
+                          min(700, input_frame.index[-1]), 5), :]
                 if input_frame.shape[1] == 3:
                     self.erg = input_frame
                 else:
