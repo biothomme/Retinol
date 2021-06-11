@@ -1011,7 +1011,7 @@ class Floral_Spectra:
                 elif plot_type == "dendrogram":
                     self.plot_distances(
                         genus=genus, area=area, plot_type="dendrogram")
-                elif self.trichromatic:
+                elif self.erg.shape[1] == 3:
                     if plot_type == "hexagon":
                         self.plot_hexagon(genus=genus, area=area)
                     elif plot_type == "triangle":
