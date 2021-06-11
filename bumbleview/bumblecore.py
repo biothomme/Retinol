@@ -576,7 +576,7 @@ class Floral_Spectra:
                 input_frame = input_frame.loc[
                     range(max(300, input_frame.index[0]),
                           min(700, input_frame.index[-1]), 5), :]
-                if input_frame.shape[1] == 3:
+                if input_frame.shape[1] in [3, 4]:
                     self.erg = input_frame
                 else:
                     print("Input did not fit. Bombus data will be used instead.")
