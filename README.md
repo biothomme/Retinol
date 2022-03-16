@@ -5,3 +5,5 @@ How do insects see the world? A recent review shows the magnitude of variation o
 
 For any questions or help please contact thomas.huber<at>evobio.eu
 
+# More possibilities?!
+For anyone up to use `R`, we recommend and encourage the use of a great universe of spectral analyses tools in [pavo](http://pavo.colrverse.com/http://pavo.colrverse.com/).
