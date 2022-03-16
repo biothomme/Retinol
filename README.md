@@ -6,4 +6,4 @@ How do insects see the world? A recent review shows the magnitude of variation o
 For any questions or help please contact thomas.huber<at>evobio.eu
 
 # More possibilities?!
-For anyone up to use `R`, we recommend and encourage the use of a great universe of spectral analyses tools in a much more comprehensive software than `bumblieview`: [pavo](http://pavo.colrverse.com/) (*Maia, R., Gruson, H., Endler, J.A. and White, T.E., 2019. pavo 2: new tools for the spectral and spatial analysis of colour in R. Methods in Ecology and Evolution, 10(7), pp.1097-1107.*).
+For anyone up to use `R`, we recommend and encourage the use of a great universe of spectral analyses tools in a much more comprehensive software than `bumbleview`: [pavo](http://pavo.colrverse.com/) (*Maia, R., Gruson, H., Endler, J.A. and White, T.E., 2019. pavo 2: new tools for the spectral and spatial analysis of colour in R. Methods in Ecology and Evolution, 10(7), pp.1097-1107.*).
